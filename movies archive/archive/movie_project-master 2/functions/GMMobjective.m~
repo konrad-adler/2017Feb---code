@@ -1,0 +1,99 @@
+function J = GMMobjective(Params, Model)
+% =============================================================================================
+% Objective Function for Ancient city structural model
+%
+% INPUT: Params, vector, vector of estimated parameters
+%        Model, structure
+%        W, matrix, weighting matrix
+% OUTPUT: J (objective)
+% =============================================================================================
+
+%% DATA INPUT/PROCESS
+W = eye(Model.n^2);
+market_share=Model.market_share;
+n=Model.n;
+nmarket=Model.nmarket;
+nmovies=Model.nmovies;
+ntaste=Model.ntaste;
+
+%Preallocation
+gammpar=
+
+
+
+start_pos=1;
+end_pos=ntaste;
+for i=start_pos:end_pos,
+    gammapar(i)=-rand(1); %Gamma guess
+end
+
+start_pos=end_pos+1;
+end_pos=start_pos+nmovies*ntaste-1;
+for i=start_pos:end_pos,
+    c_j(i)=rand(1); %Movie location guess
+end
+
+start_pos=end_pos+1;
+end_pos=start_pos+nmarket*ntaste-1;
+for i=start_pos:end_pos,
+    mu(i)=rand(1); %Market specific consumer guess mean
+end
+
+start_pos=end_pos+1;
+end_pos=start_pos+nmarket*ntaste-1;
+for i=start_pos:end_pos,
+    sigma(i)=rand(1); %Market specific consumer guess sigma
+end
+
+
+start_pos=end_pos+1;
+end_pos=start_pos+3-1;
+for i=start_pos:end_pos,
+    betapar(i)=rand(1); %Beta Params 
+end
+
+start_pos=end_pos+1;
+end_pos=start_pos+nmovies-1;
+for i=start_pos:end_pos,
+    zeta_j(i)=rand(1); %Unobservables Movie
+end
+
+
+
+% Movie unobservables/position
+Setup.zeta_j = normrnd(2,0.25,nmovies,1); 
+Setup.c_j = normrnd(0,1,nmovies,ntaste); %Movie position in taste space
+
+
+% fix coefficients
+Setup.betapar = [0.0005,0.0075, 0.0055];
+Setup.gammapar = -rand(ntaste,1);
+Setup.mu = unifrnd(0,2,nmarket,ntaste);
+Setup.sigma = unifrnd(0,2,nmarket,ntaste);
+
+
+
+
+
+%% AUXILIARY MODEL - SIMULATE MARKET SHARES
+
+market_share_sim=zeros(nmovies,nmarket);
+for j=1:nmarket,
+    Setup.j=j;
+    market_share_sim(:,j)=Simulation(Model);
+end
+
+%% CALCULATE DISTANCE 
+
+error=market_share-market_share_sim;
+k=1;
+g=zeros(Model.n*Model.n,1);
+for i=1:n,
+    for j=1:n,
+        g(k)=error(i,j);
+        k=k+1;
+    end
+end
+
+%% OBJECTIVE FUNCTION
+J = g'*W*g;
